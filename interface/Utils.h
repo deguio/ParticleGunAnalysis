@@ -28,20 +28,38 @@ struct MyTreeVars
 
   std::vector<double>* HGCDigiEta;
   std::vector<double>* HGCDigiPhi;
-  std::vector<double>* HGCDigiIEta;
-  std::vector<double>* HGCDigiIPhi;
-  std::vector<double>* HGCDigiLayer;
-  std::vector<double>* HGCDigiIndex;
+  std::vector<int>* HGCDigiIEta;
+  std::vector<int>* HGCDigiIPhi;
+  std::vector<int>* HGCDigiLayer;
+  std::vector<int>* HGCDigiIndex;
 
   std::vector<double>* HGCSimHitsIntEnergy;
-  std::vector<double>* HGCSimHitsIntIEta;
-  std::vector<double>* HGCSimHitsIntIPhi;
-  std::vector<double>* HGCSimHitsIntLayer;
-  std::vector<double>* HGCSimHitsIntIndex;
+  std::vector<int>* HGCSimHitsIntIEta;
+  std::vector<int>* HGCSimHitsIntIPhi;
+  std::vector<int>* HGCSimHitsIntLayer;
+  std::vector<int>* HGCSimHitsIntIndex;
+  std::vector<double>* HGCSimHitsEta;
+  std::vector<double>* HGCSimHitsPhi;
+
+  std::vector<std::vector<float>>* HGCDigiSamples;
 };
 
 void InitTreeVars(TTree* chain, MyTreeVars& tt);
 TChain* LoadChain(std::string inFileName);
+
+
+template <class T1, class T2, class T3, class T4>
+T1 deltaR2 (T1 eta1, T2 phi1, T3 eta2, T4 phi2) {
+  T1 deta = eta1 - eta2;
+  T1 dphi = std::abs(phi1-phi2); if (dphi>T1(M_PI)) dphi-=T1(2*M_PI);
+  return deta*deta + dphi*dphi;
+}
+
+//double undoNonLinearity(double nPix)
+//{
+//
+//  return nPix;
+//}
 
 void findPeak(TH1F* h,
   std::vector<std::pair<float,float>>* maxima,
@@ -50,6 +68,6 @@ void findPeak(TH1F* h,
   float thr);
 
 
-  void FindSmallestInterval(float* ret, TH1F* histo, const float& fraction);
+void FindSmallestInterval(float* ret, TH1F* histo, const float& fraction);
 
 #endif

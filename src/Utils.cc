@@ -14,10 +14,10 @@ void InitTreeVars(TTree* chain, MyTreeVars& tt)
 
   tt.HGCDigiEta = new std::vector<double>;
   tt.HGCDigiPhi = new std::vector<double>;
-  tt.HGCDigiIEta = new std::vector<double>;
-  tt.HGCDigiIPhi = new std::vector<double>;
-  tt.HGCDigiLayer = new std::vector<double>;
-  tt.HGCDigiIndex = new std::vector<double>;
+  tt.HGCDigiIEta = new std::vector<int>;
+  tt.HGCDigiIPhi = new std::vector<int>;
+  tt.HGCDigiLayer = new std::vector<int>;
+  tt.HGCDigiIndex = new std::vector<int>;
   chain -> SetBranchStatus("HGCDigiEta",1); chain -> SetBranchAddress("HGCDigiEta",&tt.HGCDigiEta);
   chain -> SetBranchStatus("HGCDigiPhi",1); chain -> SetBranchAddress("HGCDigiPhi",&tt.HGCDigiPhi);
   chain -> SetBranchStatus("HGCDigiIEta",1); chain -> SetBranchAddress("HGCDigiIEta",&tt.HGCDigiIEta);
@@ -26,14 +26,22 @@ void InitTreeVars(TTree* chain, MyTreeVars& tt)
   chain -> SetBranchStatus("HGCDigiIndex",1); chain -> SetBranchAddress("HGCDigiIndex",&tt.HGCDigiIndex);
 
   tt.HGCSimHitsIntEnergy = new std::vector<double>;
-  tt.HGCSimHitsIntIEta = new std::vector<double>;
-  tt.HGCSimHitsIntIPhi = new std::vector<double>;
-  tt.HGCSimHitsIntLayer = new std::vector<double>;
-  tt.HGCSimHitsIntIndex = new std::vector<double>;
+  tt.HGCSimHitsIntIEta = new std::vector<int>;
+  tt.HGCSimHitsIntIPhi = new std::vector<int>;
+  tt.HGCSimHitsIntLayer = new std::vector<int>;
+  tt.HGCSimHitsIntIndex = new std::vector<int>;
+  tt.HGCSimHitsEta = new std::vector<double>;
+  tt.HGCSimHitsPhi = new std::vector<double>;
   chain -> SetBranchStatus("HGCSimHitsIntEnergy",1); chain -> SetBranchAddress("HGCSimHitsIntEnergy",&tt.HGCSimHitsIntEnergy);
   chain -> SetBranchStatus("HGCSimHitsIntIEta",1); chain -> SetBranchAddress("HGCSimHitsIntIEta",&tt.HGCSimHitsIntIEta);
   chain -> SetBranchStatus("HGCSimHitsIntIPhi",1); chain -> SetBranchAddress("HGCSimHitsIntIPhi",&tt.HGCSimHitsIntIPhi);
   chain -> SetBranchStatus("HGCSimHitsIntLayer",1); chain -> SetBranchAddress("HGCSimHitsIntLayer",&tt.HGCSimHitsIntLayer);
+  chain -> SetBranchStatus("HGCSimHitsIntIndex",1); chain -> SetBranchAddress("HGCSimHitsIntIndex",&tt.HGCSimHitsIntIndex);
+  chain -> SetBranchStatus("HGCSimHitsEta",1); chain -> SetBranchAddress("HGCSimHitsEta",&tt.HGCSimHitsEta);
+  chain -> SetBranchStatus("HGCSimHitsPhi",1); chain -> SetBranchAddress("HGCSimHitsPhi",&tt.HGCSimHitsPhi);
+
+  tt.HGCDigiSamples = new std::vector<std::vector<float>>;
+  chain -> SetBranchStatus("HGCDigiSamples",1); chain -> SetBranchAddress("HGCDigiSamples",&tt.HGCDigiSamples);
 }
 
 //--- load chain ---
