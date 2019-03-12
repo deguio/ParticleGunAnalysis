@@ -1,0 +1,163 @@
+#include "interface/Utils.h"
+
+
+void InitTreeVars(TTree* chain, MyTreeVars& tt)
+{
+  tt.GenParEta = new std::vector<double>;
+  tt.GenParPhi = new std::vector<double>;
+  tt.GenParPt = new std::vector<double>;
+  tt.GenParP = new std::vector<double>;
+  chain -> SetBranchStatus("GenParEta",1); chain -> SetBranchAddress("GenParEta",&tt.GenParEta);
+  chain -> SetBranchStatus("GenParPhi",1); chain -> SetBranchAddress("GenParPhi",&tt.GenParPhi);
+  chain -> SetBranchStatus("GenParPt",1); chain -> SetBranchAddress("GenParPt",&tt.GenParPt);
+  chain -> SetBranchStatus("GenParP",1); chain -> SetBranchAddress("GenParP",&tt.GenParP);
+
+  tt.HGCDigiEta = new std::vector<double>;
+  tt.HGCDigiPhi = new std::vector<double>;
+  tt.HGCDigiIEta = new std::vector<double>;
+  tt.HGCDigiIPhi = new std::vector<double>;
+  tt.HGCDigiLayer = new std::vector<double>;
+  tt.HGCDigiIndex = new std::vector<double>;
+  chain -> SetBranchStatus("HGCDigiEta",1); chain -> SetBranchAddress("HGCDigiEta",&tt.HGCDigiEta);
+  chain -> SetBranchStatus("HGCDigiPhi",1); chain -> SetBranchAddress("HGCDigiPhi",&tt.HGCDigiPhi);
+  chain -> SetBranchStatus("HGCDigiIEta",1); chain -> SetBranchAddress("HGCDigiIEta",&tt.HGCDigiIEta);
+  chain -> SetBranchStatus("HGCDigiIPhi",1); chain -> SetBranchAddress("HGCDigiIPhi",&tt.HGCDigiIPhi);
+  chain -> SetBranchStatus("HGCDigiLayer",1); chain -> SetBranchAddress("HGCDigiLayer",&tt.HGCDigiLayer);
+  chain -> SetBranchStatus("HGCDigiIndex",1); chain -> SetBranchAddress("HGCDigiIndex",&tt.HGCDigiIndex);
+
+  tt.HGCSimHitsIntEnergy = new std::vector<double>;
+  tt.HGCSimHitsIntIEta = new std::vector<double>;
+  tt.HGCSimHitsIntIPhi = new std::vector<double>;
+  tt.HGCSimHitsIntLayer = new std::vector<double>;
+  tt.HGCSimHitsIntIndex = new std::vector<double>;
+  chain -> SetBranchStatus("HGCSimHitsIntEnergy",1); chain -> SetBranchAddress("HGCSimHitsIntEnergy",&tt.HGCSimHitsIntEnergy);
+  chain -> SetBranchStatus("HGCSimHitsIntIEta",1); chain -> SetBranchAddress("HGCSimHitsIntIEta",&tt.HGCSimHitsIntIEta);
+  chain -> SetBranchStatus("HGCSimHitsIntIPhi",1); chain -> SetBranchAddress("HGCSimHitsIntIPhi",&tt.HGCSimHitsIntIPhi);
+  chain -> SetBranchStatus("HGCSimHitsIntLayer",1); chain -> SetBranchAddress("HGCSimHitsIntLayer",&tt.HGCSimHitsIntLayer);
+}
+
+//--- load chain ---
+TChain* LoadChain(std::string inFileName)
+{
+  TChain* chain = new TChain("hgcalTupleTree/tree","hgcalTupleTree/tree");
+
+  chain->Add(inFileName.c_str());
+  std::cout << " Read " << chain->GetEntries() << " total events in tree " << chain->GetName() << std::endl;
+
+  return chain;
+}
+
+//--- find peak ---
+void findPeak(TH1F* h,
+  std::vector<std::pair<float,float>>* maxima,
+  std::vector<float>* charge,
+  std::vector<int> ranges,
+  float thr)
+  {
+    std::vector<int> updatedRanges;
+    float minMax = -1;
+    for(unsigned int rr=1; rr<ranges.size(); rr+=2)
+    {
+      //to avoid overlapping intervals
+      if(ranges.at(rr) <= ranges.at(rr-1))
+      continue;
+
+      h->GetXaxis()->SetRange(ranges.at(rr-1),ranges.at(rr));
+      float maxY = h->GetMaximum();
+      int maxBinX = h->GetMaximumBin();
+      float maxX = h->GetXaxis()->GetBinCenter(maxBinX);
+      std::pair<float,float> maximum = std::make_pair(maxX,maxY);
+
+      //find the maximum max in this iteration
+      if(maxY > minMax)
+      minMax = maxY;
+      //store only interesting maxima
+      if(maxY > thr)
+      {
+        maxima->push_back(maximum);
+        charge->push_back(h->Integral(maxBinX - 12, maxBinX + 12));
+      }
+
+      updatedRanges.push_back(ranges.at(rr-1));
+      updatedRanges.push_back(maxBinX - 12);
+      updatedRanges.push_back(maxBinX + 12);
+      updatedRanges.push_back(ranges.at(rr));
+
+    }
+
+    if(minMax < thr)
+    return;
+
+    findPeak(h, maxima, charge, updatedRanges, thr);
+  }
+
+
+  /*** find effective sigma ***/
+  void FindSmallestInterval(float* ret, TH1F* histo, const float& fraction)
+  {
+    float integralMax = fraction * histo->Integral();
+
+    int N = histo -> GetNbinsX();
+    int M1 = 0;
+    int M2 = 0;
+    for(int bin1 = 0; bin1 < N; ++bin1)
+    {
+      if( histo->GetBinContent(bin1+1) > 0. && M1 == 0 ) M1 = bin1-1;
+      if( histo->GetBinContent(bin1+1) > 0. ) M2 = bin1+2;
+    }
+
+    std::map<int,float> binCenters;
+    std::map<int,float> binContents;
+    std::map<int,float> binIntegrals;
+    for(int bin1 = M1; bin1 < M2; ++bin1)
+    {
+      binCenters[bin1] = histo->GetBinCenter(bin1+1);
+      binContents[bin1] = histo->GetBinContent(bin1+1);
+
+      for(int bin2 = M1; bin2 <= bin1; ++bin2)
+      binIntegrals[bin1] += binContents[bin2];
+    }
+
+    float min = 0.;
+    float max = 0.;
+    float delta = 999999.;
+    for(int bin1 = M1; bin1 < M2; ++bin1)
+    {
+      for(int bin2 = bin1+1; bin2 < M2; ++bin2)
+      {
+        if( (binIntegrals[bin2]-binIntegrals[bin1]) < integralMax ) continue;
+
+        float tmpMin = histo -> GetBinCenter(bin1+1);
+        float tmpMax = histo -> GetBinCenter(bin2+1);
+
+        if( (tmpMax-tmpMin) < delta )
+        {
+          delta = (tmpMax - tmpMin);
+          min = tmpMin;
+          max = tmpMax;
+        }
+
+        break;
+      }
+    }
+
+    TH1F* smallHisto = (TH1F*)( histo->Clone("smallHisto") );
+    for(int bin = 1; bin <= smallHisto->GetNbinsX(); ++bin)
+    {
+      if( smallHisto->GetBinCenter(bin) < min )
+      smallHisto -> SetBinContent(bin,0);
+
+      if( smallHisto->GetBinCenter(bin) > max )
+      smallHisto -> SetBinContent(bin,0);
+    }
+    smallHisto -> SetFillColor(kYellow);
+    //smallHisto->Write();
+
+    float mean = smallHisto -> GetMean();
+    float meanErr = smallHisto -> GetMeanError();
+
+    ret[0] = mean;
+    ret[1] = meanErr;
+    ret[2] = min;
+    ret[3] = max;
+  }

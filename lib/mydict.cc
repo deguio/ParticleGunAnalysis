@@ -38,6 +38,8 @@ namespace std {} using namespace std;
 
 // Header files passed as explicit arguments
 #include "./interface/SetTDRStyle.h"
+#include "./interface/SiPM.h"
+#include "./interface/Utils.h"
 
 // Header files passed via #pragma extra_include
 
@@ -45,6 +47,8 @@ namespace {
   void TriggerDictionaryInitialization_mydict_Impl() {
     static const char* headers[] = {
 "./interface/SetTDRStyle.h",
+"./interface/SiPM.h",
+"./interface/Utils.h",
 0
     };
     static const char* includePaths[] = {
@@ -70,6 +74,8 @@ extern int __Cling_Autoloading_Map;
 
 #define _BACKWARD_BACKWARD_WARNING_H
 #include "./interface/SetTDRStyle.h"
+#include "./interface/SiPM.h"
+#include "./interface/Utils.h"
 
 #undef  _BACKWARD_BACKWARD_WARNING_H
 )DICTPAYLOAD";
