@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
   //book histograms
   TH1F* h_simHit_particle_deltaR = new TH1F("h_simHit_particle_deltaR","h_simHit_particle_deltaR",100,0,2);
-  TH1F* h_simHit_digi_diff = new TH1F("h_simHit_digi_diff","h_simHit_digi_diff",200,-200,200);
+  TH1F* h_simHit_digi_diff = new TH1F("h_simHit_digi_diff","h_simHit_digi_diff",200,-50,50);
 
 
   int nEntries = chain -> GetEntries();
@@ -70,7 +70,7 @@ int main(int argc, char** argv)
       h_simHit_particle_deltaR->Fill(simHit_particle_deltaR);
     }
 
-
+    //loop over summed simHits
     for(unsigned int simHit=0; simHit<tt.HGCSimHitsIntIEta->size(); ++simHit)
     {
       //take only scintillators
@@ -78,27 +78,23 @@ int main(int argc, char** argv)
       if(simHitIndex != 2)
         continue;
 
-      double simHitEn = tt.HGCSimHitsIntEnergy->at(simHit);
-      double simHitIEta = tt.HGCSimHitsIntIEta->at(simHit);
-      double simHitIPhi = tt.HGCSimHitsIntIPhi->at(simHit);
-      double simHitLayer = tt.HGCSimHitsIntLayer->at(simHit);
-
+      float simHitEn = tt.HGCSimHitsIntEnergy->at(simHit);
+      int simHitIEta = tt.HGCSimHitsIntIEta->at(simHit);
+      int simHitIPhi = tt.HGCSimHitsIntIPhi->at(simHit);
+      int simHitLayer = tt.HGCSimHitsIntLayer->at(simHit);
       for(unsigned int digi=0; digi<tt.HGCDigiIEta->size(); ++digi)
       {
-        double digiIEta = tt.HGCDigiIEta->at(digi);
-        double digiIPhi = tt.HGCDigiIPhi->at(digi);
-        double digiLayer = tt.HGCDigiLayer->at(digi);
-        double digiIndex = tt.HGCDigiIndex->at(digi);
-
-        if(simHitIEta==digiIEta && simHitIPhi==digiIPhi && simHitLayer==digiLayer)
+        int digiIEta = tt.HGCDigiIEta->at(digi);
+        int digiIPhi = tt.HGCDigiIPhi->at(digi);
+        int digiLayer = tt.HGCDigiLayer->at(digi);
+        int digiIndex = tt.HGCDigiIndex->at(digi);
+        if(simHitIEta==digiIEta && simHitIPhi==digiIPhi && simHitLayer==digiLayer && simHitIndex==digiIndex)
         {
-          double ped = (tt.HGCDigiSamples->at(digi)[1] + tt.HGCDigiSamples->at(digi)[2])/2;
-          double sig = tt.HGCDigiSamples->at(digi)[9] - ped;
+          float ped = (tt.HGCDigiSamples->at(digi)[1] + tt.HGCDigiSamples->at(digi)[2])/2;
+          float sig = tt.HGCDigiSamples->at(digi)[9] - ped;
 
-
-          double res = (sig - simHitEn/0.5)/simHitEn/0.5;
-
-          std::cout << ped << " " << sig << " " << simHitEn/500 << " " << res << std::endl;
+          // 1 MIP = 500 KeV = 0.0005 GeV
+          double res = (sig - simHitEn/0.0005)/(simHitEn/0.0005);
 
           h_simHit_digi_diff->Fill(res);
           continue;

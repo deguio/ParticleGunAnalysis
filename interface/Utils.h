@@ -26,20 +26,20 @@ struct MyTreeVars
   std::vector<double>* GenParPt;
   std::vector<double>* GenParP;
 
-  std::vector<double>* HGCDigiEta;
-  std::vector<double>* HGCDigiPhi;
+  std::vector<float>* HGCDigiEta;
+  std::vector<float>* HGCDigiPhi;
   std::vector<int>* HGCDigiIEta;
   std::vector<int>* HGCDigiIPhi;
   std::vector<int>* HGCDigiLayer;
   std::vector<int>* HGCDigiIndex;
 
-  std::vector<double>* HGCSimHitsIntEnergy;
+  std::vector<float>* HGCSimHitsIntEnergy;
   std::vector<int>* HGCSimHitsIntIEta;
   std::vector<int>* HGCSimHitsIntIPhi;
   std::vector<int>* HGCSimHitsIntLayer;
   std::vector<int>* HGCSimHitsIntIndex;
-  std::vector<double>* HGCSimHitsEta;
-  std::vector<double>* HGCSimHitsPhi;
+  std::vector<float>* HGCSimHitsEta;
+  std::vector<float>* HGCSimHitsPhi;
 
   std::vector<std::vector<float>>* HGCDigiSamples;
 };
