@@ -52,7 +52,7 @@ LDFLAGS  =  -rdynamic -shared -O2
 SONAME	 =  libPGunAnalysis.so
 SOFLAGS  =  -Wl,-soname,
 
-GLIBS   =  -lm -ldl -rdynamic -L./CfgManager/lib -lCfgMan $(ROOTGLIBS)
+GLIBS   =  -lm -ldl -rdynamic -L./CfgManager/lib -lCFGMan $(ROOTGLIBS)
 
 
 
