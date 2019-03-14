@@ -1,7 +1,6 @@
-//c++ -o SoverNStudies `root-config --cflags --ldflags --glibs` -lRooFit -lRooFitCore -lRooStats SoverNStudies.cpp SiPM.cc
-
 #include "interface/SiPM.h"
 #include "interface/SetTDRStyle.h"
+#include "interface/Utils.h"
 
 #include "CfgManager/interface/CfgManager.h"
 #include "CfgManager/interface/CfgManagerT.h"
@@ -45,6 +44,7 @@ using namespace RooFit ;
 TRandom3 *r3      = new TRandom3();
 
 TGraph* outVsIn;
+TGraph* inVsOut;
 TH2F* biasMap;
 int nExp = 0;
 
@@ -72,7 +72,7 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   float meanNtot     = meanN / intWin * dt * nPreciseBins; //PE from noise in the full window
 
   int minR = 0;
-  int maxR = std::max(nMips * nPEperMip, meanN) +100;
+  int maxR = std::max(nMips * nPEperMip, meanN) + 300;
   float timeOffset = 0; //100
 
   //setup SiPM
@@ -197,6 +197,7 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   sumHitsTot /= nEvents;
   sumPeTot /= nEvents;
   outVsIn->SetPoint(nExp, sumPeTot, sumHitsTot);
+  inVsOut->SetPoint(nExp, sumHitsTot, (float)sumPeTot/(float)sumHitsTot);
 
   ++nExp;
   if(opts.GetOpt<bool>("Params.doMipScan"))
@@ -221,7 +222,11 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   RooPlot* frame = ee.frame(Title("Imported TH1 with Poisson error bars")) ;
   dh.plotOn(frame) ;
 
-  convsig.fitTo(dh,Range(minR,maxR));
+  float ret[4];
+  FindSmallestInterval(ret, &h_tot, 0.68);
+  float range = ret[3] - ret[2];
+
+  convsig.fitTo(dh,Range(minR, range*10));
   convsig.plotOn(frame) ;
 
   biasMap->Fill(nPEperMip, SoN, (ml.getVal() - sigModel.GetParameter(1))/sigModel.GetParameter(1));
@@ -257,8 +262,9 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   arrivalTime.DrawCopy("HISTO,sames");
   cPlots.Update();
 
+  std::string outFolder = opts.GetOpt<std::string>("Input.outputFolder");
   std::stringstream title;
-  title << std::fixed << std::setprecision(1) << "plots/nMips_" << nMips << "_SoN_" << SoN << "_Signal_" << nPEperMip << ".pdf";
+  title << std::fixed << std::setprecision(1) << outFolder << "/nMips_" << nMips << "_SoN_" << SoN << "_Signal_" << nPEperMip << ".pdf";
   std::string oName = title.str();
   cPlots.Print(oName.c_str(),"pdf");
 }
@@ -310,6 +316,7 @@ int main(int argc, char** argv)
 
 
   outVsIn   = new TGraph();
+  inVsOut   = new TGraph();
   biasMap     = new TH2F("biasMap","biasMap", (nPeMax-nPeMin)/nPeStep, nPeMin-nPeStep/2,nPeMax-nPeStep/2,
                                               (SoNMax-SoNMin)/SoNStep, SoNMin-SoNStep/2,SoNMax-SoNStep/2);
 
@@ -323,6 +330,7 @@ int main(int argc, char** argv)
         ++count;
       }
 
+  //LINEARITY
   TCanvas* cLin = new TCanvas("cLin","cLin");
   cLin->SetGridx();
   cLin->SetGridy();
@@ -331,19 +339,41 @@ int main(int argc, char** argv)
   outVsIn->Draw("AP");
   outVsIn->GetYaxis()->SetTitle("output [pe]");
   outVsIn->GetXaxis()->SetTitle("input [pe]");
-  TF1* nonLinFunc = new TF1("nonLinFunc","[0]*(1 - exp(-x/[0]))", 0, 50000);
+
+  TF1* nonLinFunc = new TF1("nonLinFunc","[0]*(1 - exp(-x/[0]))", 0, 80000);
   nonLinFunc->SetParameter(0, opts.GetOpt<int>("Params.nPixels"));
   nonLinFunc->SetNpx(10000);
   nonLinFunc->Draw("sames");
+  cLin->Update();
 
-  TF1* nonLinFunc_corr = new TF1("nonLinFunc_corr","[0] * (1 - exp(-x/[0])) / (1 - [1]*exp(-x/[0]))", 0, 50000);
-  nonLinFunc_corr->SetParameters(opts.GetOpt<int>("Params.nPixels"), opts.GetOpt<int>("Params.xTalk"));
+  TF1* nonLinFunc_corr = new TF1("nonLinFunc_corr","[0] * (1 - exp(-x/[0])) / (1 - [1]*exp(-x/[0]))", 0, 80000);
+  nonLinFunc_corr->SetParameters(opts.GetOpt<int>("Params.nPixels"), opts.GetOpt<float>("Params.xTalk"));
   nonLinFunc_corr->SetNpx(10000);
   nonLinFunc_corr->SetLineColor(kBlue);
   nonLinFunc_corr->Draw("sames");
-
   cLin->Update();
-  cLin->Print("plots/lin.pdf","pdf");
+
+  std::string outFolder = opts.GetOpt<std::string>("Input.outputFolder");
+  cLin->Print((outFolder+"/lin.pdf").c_str(),"pdf");
+
+  //CORRECTION
+  TCanvas* cCorr = new TCanvas("cCorr","cCorr");
+  cCorr->SetGridx();
+  cCorr->SetGridy();
+
+  inVsOut->SetMarkerStyle(20);
+  inVsOut->Draw("AP");
+  inVsOut->GetYaxis()->SetTitle("corr");
+  inVsOut->GetXaxis()->SetTitle("output [pe]");
+
+  TF1* corrFunc = new TF1("corrFunc","pol2", 0, 50000);
+  inVsOut->Fit(corrFunc,"R");
+  cCorr->Update();
+
+  cCorr->Print((outFolder+"/corr.pdf").c_str(),"pdf");
+
+
+  //BIAS
   TCanvas* cBias = new TCanvas("cBias","cBias");
   biasMap->GetXaxis()->SetTitle("Signal [pe]");
   biasMap->GetYaxis()->SetTitle("S/N");
@@ -351,7 +381,7 @@ int main(int argc, char** argv)
   biasMap->Draw("COLZ,TEXT");
   cBias->Update();
 
-  cBias->Print("plots/bias.pdf","pdf");
+  cBias->Print((outFolder+"/bias.pdf").c_str(),"pdf");
 
 
   return 0;
