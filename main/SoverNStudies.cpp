@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include <TSystem.h>
+#include <TROOT.h>
 #include <TRandom3.h>
 #include <TF1.h>
 #include <TH1F.h>

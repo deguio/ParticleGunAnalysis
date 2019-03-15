@@ -5,6 +5,7 @@
 #include "CfgManager/interface/CfgManagerT.h"
 
 #include "TSystem.h"
+#include "TROOT.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TChain.h"
@@ -71,6 +72,7 @@ int main(int argc, char** argv)
   //ACCESS PARAMETERS
   std::string inputName = opts.GetOpt<std::string>("Input.inputFile");
   std::string outputPath = opts.GetOpt<std::string>("Input.outputFolder");
+  std::string outputName = opts.GetOpt<std::string>("Input.outputName");
 
   int detIndex = opts.GetOpt<int>("Params.detectorIndex");
 
@@ -83,7 +85,7 @@ int main(int argc, char** argv)
 
   std::string createFolder = "mkdir -p "+outputPath;
   system(createFolder.c_str());
-  std::string outputFile = outputPath+"/PGunAnalysis.root";
+  std::string outputFile = outputPath+"/"+outputName;
   TFile* outFile = new TFile(outputFile.c_str(), "RECREATE");
   outFile -> cd();
 
