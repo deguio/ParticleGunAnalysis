@@ -79,6 +79,7 @@ int main(int argc, char** argv)
   float gevPerMip = opts.GetOpt<float>("Params.gevPerMip");
   float mipRange = opts.GetOpt<float>("Params.mipRange");
   int nAdcBits = opts.GetOpt<int>("Params.nAdcBits");
+  float zsThr = opts.GetOpt<float>("Params.zsThr");
   int nAdcChannels = pow(2, nAdcBits);
 
   TApplication *theApp = new TApplication( "app", &argc, argv );
@@ -141,6 +142,10 @@ int main(int argc, char** argv)
       int simHitIPhi = tt.HGCSimHitsIntIPhi->at(simHit);
       int simHitLayer = tt.HGCSimHitsIntLayer->at(simHit);
 
+      //to make a fair comparison with the DIGIs
+      if(simHitEn/gevPerMip < zsThr)
+        continue;
+
       h_simHit_energy->Fill(simHitEn);
 
       for(unsigned int digi=0; digi<tt.HGCDigiIEta->size(); ++digi)
@@ -153,8 +158,8 @@ int main(int argc, char** argv)
         //DetID matching
         if(simHitIEta==digiIEta && simHitIPhi==digiIPhi && simHitLayer==digiLayer && simHitIndex==digiIndex)
         {
-          float ped = (tt.HGCDigiSamples->at(digi)[1] + tt.HGCDigiSamples->at(digi)[2])/2;
-          float sig = tt.HGCDigiSamples->at(digi)[9] - ped;
+          float ped = (tt.HGCDigiSamples->at(digi)[0] + tt.HGCDigiSamples->at(digi)[1])/2;
+          float sig = tt.HGCDigiSamples->at(digi)[2] - ped;
 
           //transform to Mip
           sig = sig / nAdcChannels * mipRange;
