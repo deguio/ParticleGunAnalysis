@@ -169,3 +169,63 @@ void findPeak(TH1F* h,
     ret[2] = min;
     ret[3] = max;
   }
+
+  /*** expo1 ***/
+  double expon1(double* x, double* par)
+  {
+    double xx = x[0];
+    double tau = par[0];
+
+    if(xx < 0)
+      return 0;
+    else
+      return (1 - exp(-xx/tau));
+  }
+
+  /*** expo2 ***/
+  double expon2(double* x, double* par)
+  {
+    double xx = x[0];
+    double tau = par[0];
+
+    return (exp(-xx/tau));
+  }
+
+
+  /*** double expo convolution ***/
+  double expoConv(double* x, double* par)
+  {
+    //[0] = expo1 tau
+    //[1] = expo2 tau
+
+    double xx = x[0];
+    double tau1 = par[0];
+    double tau2 = par[1];
+
+    TF1* expo1 = new TF1("expo1", expon1, -25.,25., 1);
+    expo1 -> FixParameter(0,tau1);
+
+    TF1* expo2 = new TF1("expo2", expon2, -25.,25., 1);
+    expo2 -> FixParameter(0,tau2);
+
+
+    // convolute
+    double xMin = 0.;
+    double xMax = 25.;
+    int nSteps = 250;
+    double stepWidth = (xMax-xMin)/nSteps;
+
+    double val = 0.;
+    for(int i = 0; i < nSteps; ++i)
+    {
+      double yy = xMin + i*stepWidth;
+      val += expo2->Eval(xx) * expo1->Eval(xx-yy);
+      //std::cout << "xx = " << xx << " yy = " << yy << " xx-yy = " << xx-yy << std::endl;
+    }
+    //std::cout << "======" << std::endl;
+
+    delete expo1;
+    delete expo2;
+
+    return val;
+  }

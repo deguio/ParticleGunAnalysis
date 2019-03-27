@@ -83,7 +83,7 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   //models and histos
   TF1 sigModel("sigModel","[0]*TMath::Landau(x,[1],[2])", minR, maxR);
   TF1 bkgModel("bkgModel","[0]*TMath::Poisson(x, [1])", minR, maxR);
-  TF1 sigTimeModel("sigTimeModel","[0]*(1-exp(-x/[1])) * exp(-x/[2])", 0, nPreciseBins*dt);
+  TF1 sigTimeModel("sigTimeModel", expoConv, 0., nPreciseBins*dt, 2);
 
   sigModel.SetParameters(1, nMips * nPEperMip, 2);
   sigModel.SetNpx(10000);
@@ -98,8 +98,8 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   // gausSmear->SetNpx(10000);
 
   //define time distribution
-  sigTimeModel.SetParameters(1, tauRise, tauDecay);
-  sigTimeModel.SetNpx(10000);
+  sigTimeModel.SetParameters(tauRise, tauDecay);
+  //sigTimeModel.SetNpx(10000);
 
   //book histos
   int myMax = nMips*nPEperMip*20;

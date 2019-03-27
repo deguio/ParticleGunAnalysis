@@ -70,4 +70,8 @@ void findPeak(TH1F* h,
 
 void FindSmallestInterval(float* ret, TH1F* histo, const float& fraction);
 
+double expon1(double* x, double* par);
+double expon2(double* x, double* par);
+double expoConv(double* x, double* par);
+
 #endif
