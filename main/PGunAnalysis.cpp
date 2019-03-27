@@ -64,6 +64,7 @@ TGraphErrors* makeResGraph(TH2F* resol2d)
 int main(int argc, char** argv)
 {
   gSystem -> Load("CfgManager/lib/libCFGMan.so");
+  gROOT->SetBatch(kTRUE);
   setTDRStyle();
 
   CfgManager opts;
@@ -100,7 +101,7 @@ int main(int argc, char** argv)
   TH1F* h_simHit_energy = new TH1F("h_simHit_energy","h_simHit_energy",500, 0, 0.005);
 
   TH1F* h_digi_energy = new TH1F("h_digi_energy","h_digi_energy",150, 0, 10);
-  TH1F* h_ped_energy = new TH1F("h_ped_energy","h_ped_energy",150, 0, 10);
+  TH1F* h_ped_energy = new TH1F("h_ped_energy","h_ped_energy",1000, 0, 100);
 
   //resolution plots
   TH2F* h_enDiff_vs_ieta = new TH2F("h_enDiff_vs_ieta","h_enDiff_vs_ieta",50, 0, 50, 100, -5, 5);
@@ -120,14 +121,14 @@ int main(int argc, char** argv)
     double genPhi = tt.GenParPhi->at(0);
 
     //loop over ALL SimHits
-    for(unsigned int simHit=0; simHit<tt.HGCSimHitsEta->size(); ++simHit)
-    {
-      double simHitEta = tt.HGCSimHitsEta->at(simHit);
-      double simHitPhi = tt.HGCSimHitsPhi->at(simHit);
-
-      double simHit_particle_deltaR = sqrt( deltaR2(genEta,genPhi,simHitEta,simHitPhi) );
-      h_simHit_particle_deltaR->Fill(simHit_particle_deltaR);
-    }
+//    for(unsigned int simHit=0; simHit<tt.HGCSimHitsEta->size(); ++simHit)
+//    {
+//      double simHitEta = tt.HGCSimHitsEta->at(simHit);
+//      double simHitPhi = tt.HGCSimHitsPhi->at(simHit);
+//
+//      double simHit_particle_deltaR = sqrt( deltaR2(genEta,genPhi,simHitEta,simHitPhi) );
+//      h_simHit_particle_deltaR->Fill(simHit_particle_deltaR);
+//    }
 
     //loop over summed simHits
     for(unsigned int simHit=0; simHit<tt.HGCSimHitsIntIEta->size(); ++simHit)
@@ -172,7 +173,7 @@ int main(int argc, char** argv)
           h_simHit_digi_diff->Fill(diff);
           h_enDiff_vs_ieta->Fill(std::abs(digiIEta), diff);
           h_enDiff_vs_layer->Fill(digiLayer, diff);
-          continue;
+          break;
         }
       }
     }
