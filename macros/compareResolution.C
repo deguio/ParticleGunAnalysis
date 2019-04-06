@@ -6,7 +6,7 @@ void compareResolution()
   std::map<std::string, std::string> labelsMap;
   std::map<std::string, int> colorsMap;
 
-  std::string pathName =  "out/20190330/";
+  std::string pathName =  "out/20190405/";
   std::string label = "";
 
   label = "caliceDigi";

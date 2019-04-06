@@ -44,10 +44,12 @@ using namespace RooFit ;
 
 //global objects and variables
 TRandom3 *r3      = new TRandom3();
+TFile* outFile;
 
 TGraph* outVsIn;
 TGraph* inVsOut;
 TH2F* biasMap;
+TH2F* biasErrorMap;
 TProfile2D* resMap;
 int nExp = 0;
 
@@ -56,6 +58,10 @@ int nExp = 0;
 /////////////////////////////
 void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
 {
+  std::string folder = "nMips_"+std::to_string(nMips)+"_SoN_"+std::to_string(SoN)+"_Signal_"+std::to_string(nPEperMip);
+  TDirectory* rootFolder = outFile->mkdir(folder.c_str());
+  rootFolder->cd();
+
   //access parameters
   int nEvents = opts.GetOpt<int>("Params.nEvents");
 
@@ -84,6 +90,7 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
 
   //models and histos
   TF1 sigModel("sigModel","[0]*TMath::Landau(x,[1],[2])", minR, maxR);
+  TF1 sigSmearModel("sigSmearModel","[0]*TMath::Poisson(x, [1])", minR, maxR);
   TF1 bkgModel("bkgModel","[0]*TMath::Poisson(x, [1])", minR, maxR);
   TF1 sigTimeModel("sigTimeModel", expoConv, 0., nPreciseBins*dt, 2);
 
@@ -116,7 +123,7 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   h_tot.SetLineColor(kBlack);
   h_tot.SetLineWidth(2);
 
-  TH1F h_res("h_res","h_res", 200, -5, 5);
+  TH1F h_res("h_res","h_res", 4400, -5, 50);
 
   TProfile arrivalTime("arrivalTime","arrivalTime", nPreciseBins, 0 , nPreciseBins*dt);
   arrivalTime.GetXaxis()->SetTitle("ns");
@@ -131,7 +138,6 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
       //estimate the number of pe associated to a mip traversing the HEback
       float sig = sigModel.GetRandom();
       //smear the number of PE from the signal deposit according to poisson
-      TF1 sigSmearModel("sigSmearModel","[0]*TMath::Poisson(x, [1])", minR, maxR);
       sigSmearModel.SetParameters(1., sig);
       sig = sigSmearModel.GetRandom();
 
@@ -240,19 +246,27 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   convsig.fitTo(dh,Range(minR, range*10));
   convsig.plotOn(frame) ;
 
-  biasMap->Fill(nPEperMip, SoN, (ml.getVal() - sigModel.GetParameter(1))/sigModel.GetParameter(1));
+  int bin = biasMap->FindBin(nPEperMip, SoN);
+  biasMap->SetBinContent(bin, (ml.getVal() - sigModel.GetParameter(1))/sigModel.GetParameter(1));
+  biasMap->SetBinError(bin, ml.getError()/sigModel.GetParameter(1));
+  biasErrorMap->SetBinContent(bin, ml.getError()/sigModel.GetParameter(1));
 
   //fit res plots
-  TF1* mygaus = new TF1("mygauss","gaus",-2, 2);
-  h_res.Fit(mygaus,"QR");
-  float rangeMin = mygaus->GetParameter(1) - 2*mygaus->GetParameter(2);
-  float rangeMax = mygaus->GetParameter(1) + 2*mygaus->GetParameter(2);
-  mygaus->SetRange(rangeMin,rangeMax);
-  h_res.Fit(mygaus,"QR+");
+//  TF1* mygaus = new TF1("mygauss","gaus",-2, 2);
+//  h_res.Fit(mygaus,"QR");
+//  float rangeMin = mygaus->GetParameter(1) - 2*mygaus->GetParameter(2);
+//  float rangeMax = mygaus->GetParameter(1) + 2*mygaus->GetParameter(2);
+//  mygaus->SetRange(rangeMin,rangeMax);
+//  h_res.Fit(mygaus,"QR+");
+//
+//  float sigma = mygaus->GetParameter(2);
+//  float sigmaE = mygaus->GetParError(2);
 
-  float sigma = mygaus->GetParameter(2);
-  float sigmaE = mygaus->GetParError(2);
-  resMap->Fill(nPEperMip, SoN, sigma);
+  float ret2[4];
+  FindSmallestInterval(ret2, &h_res, 0.68);
+  float range2 = ret2[3] - ret2[2];
+
+  resMap->Fill(nPEperMip, SoN, range2/2.);
 
 
   //plot
@@ -297,11 +311,16 @@ void runExperiment(CfgManager opts, float nMips, float nPEperMip, float SoN)
   title << std::fixed << std::setprecision(1) << outFolder << "/nMips_" << nMips << "_SoN_" << SoN << "_Signal_" << nPEperMip << ".pdf";
   std::string oName = title.str();
   cPlots.Print(oName.c_str(),"pdf");
+  frame->Write("langaus");
 
   std::stringstream title2;
   title2 << std::fixed << std::setprecision(1) << outFolder << "/hRes_" << nMips << "_SoN_" << SoN << "_Signal_" << nPEperMip << ".pdf";
   oName = title2.str();
   cRes.Print(oName.c_str(),"pdf");
+  h_res.Write();
+
+  outFile->cd();
+
 }
 
 
@@ -317,6 +336,14 @@ int main(int argc, char** argv)
 
   CfgManager opts;
   opts.ParseConfigFile(argv[1]);
+  std::string outFolder = opts.GetOpt<std::string>("Input.outputFolder");
+
+  std::string createFolder = "mkdir -p "+outFolder;
+  system(createFolder.c_str());
+
+
+  outFile = new TFile((outFolder+"/plots.root").c_str(), "RECREATE");
+  outFile -> cd();
 
 
   float nMipStep = 1.;
@@ -354,6 +381,9 @@ int main(int argc, char** argv)
   inVsOut   = new TGraph();
   biasMap     = new TH2F("biasMap","biasMap", (nPeMax-nPeMin)/nPeStep, nPeMin-nPeStep/2,nPeMax-nPeStep/2,
                                               (SoNMax-SoNMin)/SoNStep, SoNMin-SoNStep/2,SoNMax-SoNStep/2);
+  biasErrorMap     = new TH2F("biasErrorMap","biasErrorMap", (nPeMax-nPeMin)/nPeStep, nPeMin-nPeStep/2,nPeMax-nPeStep/2,
+                                                             (SoNMax-SoNMin)/SoNStep, SoNMin-SoNStep/2,SoNMax-SoNStep/2);
+
   resMap  = new TProfile2D("resMap","resMap", (nPeMax-nPeMin)/nPeStep, nPeMin-nPeStep/2,nPeMax-nPeStep/2,
                                               (SoNMax-SoNMin)/SoNStep, SoNMin-SoNStep/2,SoNMax-SoNStep/2);
 
@@ -390,8 +420,6 @@ int main(int argc, char** argv)
   nonLinFunc_corr->SetLineColor(kBlue);
   nonLinFunc_corr->Draw("sames");
   cLin->Update();
-
-  std::string outFolder = opts.GetOpt<std::string>("Input.outputFolder");
   cLin->Print((outFolder+"/lin.pdf").c_str(),"pdf");
 
   //CORRECTION
@@ -407,7 +435,6 @@ int main(int argc, char** argv)
   TF1* corrFunc = new TF1("corrFunc","pol2", 0, 50000);
   inVsOut->Fit(corrFunc,"R");
   cCorr->Update();
-
   cCorr->Print((outFolder+"/corr.pdf").c_str(),"pdf");
 
 
@@ -418,8 +445,15 @@ int main(int argc, char** argv)
   biasMap->GetZaxis()->SetTitle("bias");
   biasMap->Draw("COLZ,TEXT");
   cBias->Update();
-
   cBias->Print((outFolder+"/bias.pdf").c_str(),"pdf");
+
+  TCanvas* cBiasError = new TCanvas("cBiasError","cBiasError");
+  biasErrorMap->GetXaxis()->SetTitle("Signal [pe]");
+  biasErrorMap->GetYaxis()->SetTitle("S/N");
+  biasErrorMap->GetZaxis()->SetTitle("relative error on landau location par");
+  biasErrorMap->Draw("COLZ,TEXT");
+  cBiasError->Update();
+  cBiasError->Print((outFolder+"/biasError.pdf").c_str(),"pdf");
 
   //RES
   TCanvas* cRes = new TCanvas("cRes","cRes");
@@ -431,5 +465,7 @@ int main(int argc, char** argv)
 
   cRes->Print((outFolder+"/resolution.pdf").c_str(),"pdf");
 
+  outFile->Write();
+  outFile->Close();
   return 0;
 }
