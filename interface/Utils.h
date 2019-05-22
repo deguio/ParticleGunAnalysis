@@ -32,6 +32,8 @@ struct MyTreeVars
   std::vector<int>* HGCDigiIPhi;
   std::vector<int>* HGCDigiLayer;
   std::vector<int>* HGCDigiIndex;
+  std::vector<float>* HGCDigiPosx;
+  std::vector<float>* HGCDigiPosy;
 
   std::vector<float>* HGCSimHitsIntEnergy;
   std::vector<int>* HGCSimHitsIntIEta;

@@ -18,12 +18,16 @@ void InitTreeVars(TTree* chain, MyTreeVars& tt)
   tt.HGCDigiIPhi = new std::vector<int>;
   tt.HGCDigiLayer = new std::vector<int>;
   tt.HGCDigiIndex = new std::vector<int>;
+  tt.HGCDigiPosx = new std::vector<float>;
+  tt.HGCDigiPosy = new std::vector<float>;
   chain -> SetBranchStatus("HGCDigiEta",1); chain -> SetBranchAddress("HGCDigiEta",&tt.HGCDigiEta);
   chain -> SetBranchStatus("HGCDigiPhi",1); chain -> SetBranchAddress("HGCDigiPhi",&tt.HGCDigiPhi);
   chain -> SetBranchStatus("HGCDigiIEta",1); chain -> SetBranchAddress("HGCDigiIEta",&tt.HGCDigiIEta);
   chain -> SetBranchStatus("HGCDigiIPhi",1); chain -> SetBranchAddress("HGCDigiIPhi",&tt.HGCDigiIPhi);
   chain -> SetBranchStatus("HGCDigiLayer",1); chain -> SetBranchAddress("HGCDigiLayer",&tt.HGCDigiLayer);
   chain -> SetBranchStatus("HGCDigiIndex",1); chain -> SetBranchAddress("HGCDigiIndex",&tt.HGCDigiIndex);
+  chain -> SetBranchStatus("HGCDigiPosx",1); chain -> SetBranchAddress("HGCDigiPosx",&tt.HGCDigiPosx);
+  chain -> SetBranchStatus("HGCDigiPosy",1); chain -> SetBranchAddress("HGCDigiPosy",&tt.HGCDigiPosy);
 
   tt.HGCSimHitsIntEnergy = new std::vector<float>;
   tt.HGCSimHitsIntIEta = new std::vector<int>;
