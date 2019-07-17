@@ -13,17 +13,17 @@ void compareResolution()
   labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_0_algo_1_scaleByArea_False.root";
   colorsMap[label] = kGreen;
 
-  label = "newDigi";
-  labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_0_algo_2_scaleByArea_False.root";
-  colorsMap[label] = kBlue;
-
-  label = "newDigi scaled (geometry)";
-  labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_0_algo_2_scaleByArea_True.root";
-  colorsMap[label] = kRed;
-
-  label = "newDigi scaled (dose)";
-  labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_3000_algo_2_scaleByArea_False.root";
-  colorsMap[label] = kBlue+2;
+//  label = "newDigi";
+//  labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_0_algo_2_scaleByArea_False.root";
+//  colorsMap[label] = kBlue;
+//
+//  label = "newDigi scaled (geometry)";
+//  labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_0_algo_2_scaleByArea_True.root";
+//  colorsMap[label] = kRed;
+//
+//  label = "newDigi scaled (dose)";
+//  labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_3000_algo_2_scaleByArea_False.root";
+//  colorsMap[label] = kBlue+2;
 
   label = "newDigi scaled (geometry+dose)";
   labelsMap[label] = pathName+"PGunAnalysis_noiseScenario_3000_algo_2_scaleByArea_True.root";

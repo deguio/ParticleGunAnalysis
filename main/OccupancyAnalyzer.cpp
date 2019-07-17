@@ -52,6 +52,7 @@ int main(int argc, char** argv)
   int nAdcBits = opts.GetOpt<int>("Params.nAdcBits");
   float zsThr = opts.GetOpt<float>("Params.zsThr");
   int nAdcChannels = pow(2, nAdcBits);
+  bool doPed = opts.GetOpt<bool>("Params.doPed");
 
   float halfMip = nAdcChannels/mipRange/2.;
 
@@ -74,6 +75,8 @@ int main(int argc, char** argv)
   std::map<int, TProfile*> ped_layerMap;
   std::map<int, TH1D*> prob_layerMap;
   std::map<int, TH1D*> occ_layerMap;
+  std::map<int, TH1D*> sig_layerMap;
+
 
   std::map<int, std::map<int, TH1D*>> sig_rocMap;
   std::map<int, std::map<int, TH1D*>> occ_rocMap;
@@ -88,12 +91,13 @@ int main(int argc, char** argv)
     ped_layerMap[lay]  = new TProfile(Form("pedestal_layer%d",lay),         "", int(hgcrocMap_[lay].size()-1), hgcrocMap_[lay].data());
     prob_layerMap[lay] = new TH1D(Form("probNoiseAboveHalfMip_layer%d",lay),"", int(hgcrocMap_[lay].size()-1), hgcrocMap_[lay].data());
     occ_layerMap[lay]  = new TH1D(Form("occ_layer%d",lay),                  "", int(hgcrocMap_[lay].size()-1), hgcrocMap_[lay].data());
+    sig_layerMap[lay]  = new TH1D(Form("sig_layer%d",lay),                  "", 100, 0, 100);
 
     for(unsigned int roc=0; roc<hgcrocNcellsMap_[lay].size(); ++roc)
     {
       occ_rocMap[lay][roc+1] = new TH1D(Form("occ_layer%d_roc%d", lay, roc+1), "", 250, 0, 10);     //ADC
       prob_rocMap[lay][roc+1] = new TH1D(Form("prob_layer%d_roc%d", lay, roc+1), "", 100000, 0, 1);     //ADC
-      sig_rocMap[lay][roc+1] = new TH1D(Form("sig_layer%d_roc%d", lay, roc+1), "", 50000, 0, 500);     //ADC
+      sig_rocMap[lay][roc+1] = new TH1D(Form("sig_layer%d_roc%d", lay, roc+1), "", 5000, 0, 50);     //ADC
       ps_rocMap[lay][roc+1] = new TProfile(Form("ps_layer%d_roc%d", lay, roc+1), "", 5, 0, 5);     //ADC
     }
   }
@@ -103,30 +107,33 @@ int main(int argc, char** argv)
   if(nEntries == -1)
     nEntries = chainNoise -> GetEntries();
 
-  std::cout << "Compute PED" << std::endl;
-  for(int entry = 0; entry < nEntries; ++entry)
+  if(doPed)
   {
-    if(entry % 10 == 0)
-    std::cout << "reading entry " << entry << " / " << nEntries << "\r" << std::flush;
-    chainNoise -> GetEntry(entry);
+   std::cout << "Compute PED" << std::endl;
+   for(int entry = 0; entry < nEntries; ++entry)
+   {
+     if(entry % 10 == 0)
+     std::cout << "reading entry " << entry << " / " << nEntries << "\r" << std::flush;
+     chainNoise -> GetEntry(entry);
 
-    //loop over digis
-    for(unsigned int digi=0; digi<tt.HGCDigiIEta->size(); ++digi)
-    {
-      int digiIndex = tt.HGCDigiIndex->at(digi);
-      int digiIEta = tt.HGCDigiIEta->at(digi);
+     //loop over digis
+     for(unsigned int digi=0; digi<tt.HGCDigiIEta->size(); ++digi)
+     {
+       int digiIndex = tt.HGCDigiIndex->at(digi);
+       int digiIEta = tt.HGCDigiIEta->at(digi);
 
-      //consider only the relevant subdet
-      if(digiIndex != detIndex || digiIEta > 0.)
-        continue;
+       //consider only the relevant subdet
+       if(digiIndex != detIndex || digiIEta > 0.)
+         continue;
 
-      int digiLayer = tt.HGCDigiLayer->at(digi);
-      float digiRad = 10 * sqrt(std::pow(tt.HGCDigiPosx->at(digi),2) + std::pow(tt.HGCDigiPosy->at(digi),2));
-      float ped = (tt.HGCDigiSamples->at(digi)[0] + tt.HGCDigiSamples->at(digi)[1])/2;
+       int digiLayer = tt.HGCDigiLayer->at(digi);
+       float digiRad = 10 * sqrt(std::pow(tt.HGCDigiPosx->at(digi),2) + std::pow(tt.HGCDigiPosy->at(digi),2));
+       float ped = (tt.HGCDigiSamples->at(digi)[0] + tt.HGCDigiSamples->at(digi)[1])/2;
 
-      ped_layerMap[digiLayer]->Fill(digiRad, ped);              //per roc ped
-      ped_channelMap[digiLayer][digiIEta] += ped/nEntries/288.; //per channel ped
-    }
+       ped_layerMap[digiLayer]->Fill(digiRad, ped);              //per roc ped
+       ped_channelMap[digiLayer][digiIEta] += ped/nEntries/288.; //per channel ped
+     }
+   }
   }
 
   //SECOND LOOP ===================================================================================
@@ -160,10 +167,13 @@ int main(int argc, char** argv)
 
       int radBin = prob_layerMap[digiLayer]->GetXaxis()->FindBin(digiRad);
       //float ped = ped_layerMap[digiLayer]->GetBinContent(radBin);
-      double ped = ped_channelMap[digiLayer][digiIEta];
 
+      double ped = 0;
+      if(doPed)
+        ped = ped_channelMap[digiLayer][digiIEta];
 
       sig_rocMap[digiLayer][radBin]->Fill(sig-ped, 1./36./hgcrocNcellsMap_[digiLayer][radBin-1]/nEntries);
+      sig_layerMap[digiLayer]->Fill(sig-ped);
 
       if ((sig - ped) > halfMip)
       {
@@ -197,6 +207,11 @@ int main(int argc, char** argv)
   }
 
   std::cout << std::endl;
+
+  outFile->mkdir("plotter/sigLayer");
+  outFile -> cd("plotter/sigLayer");
+  for(auto elem : sig_layerMap)
+    elem.second->Write();
 
 
   outFile->mkdir("plotter/pedLayer");

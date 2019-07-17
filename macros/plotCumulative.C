@@ -1,4 +1,4 @@
-// .x macros/plotCumulative.C("HGCDigiIndex==2 && HGCDigiEta < 0")
+//root 'macros/plotCumulative.C("HGCDigiIndex==2 && HGCDigiEta < 0")'
 
 void plotCumulative(std::string selection)
 {

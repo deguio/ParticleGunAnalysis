@@ -6,10 +6,13 @@ double xMax = 25;
 
 void plotProbAboveNoise(int noise, int pu)
 {
-  std::string folderName = Form("noiseProb_noise%d_pu%d", noise, pu);
+  std::string folderName = Form("noiseProb_noise%d_pu%d_test", noise, pu);
   std::string command = "mkdir "+folderName;
   gSystem->Exec(command.c_str());
-  TFile* inFile = new TFile(Form("out/occupancyAnalyzer_noiseScenario_%d_algo_2_pileup_%d.root", noise, pu ),"READ");
+  TFile* inFile = new TFile(Form("out/occupancyAnalyzer_noiseScenario_%d_algo_2_pileup_%d_test.root", noise, pu ),"READ");
+
+  ofstream occupancyNumbers;
+  occupancyNumbers.open(Form("%s/occupancyNumbers.txt", folderName.c_str()));
 
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
@@ -20,7 +23,11 @@ void plotProbAboveNoise(int noise, int pu)
   std::map<int, THStack*> hs_map;
   std::map<int, TLegend*> leg_map;
 
-
+  occupancyNumbers << std::setw(5) << "layerID"
+                   << std::setw(15) << "rocID"
+                   << std::setw(15) << "roc-radius"
+                   << std::setw(15) << "chFrac/ev"
+                   << std::setw(15) << "chN/ev\n";
   for (int lay=9; lay<23; ++lay)
   {
     std::string hname = "plotter/probLayer/probNoiseAboveHalfMip_layer"+std::to_string(lay);
@@ -33,6 +40,19 @@ void plotProbAboveNoise(int noise, int pu)
 
     for(int roc=1; roc<prof->GetXaxis()->GetNbins()+1; ++roc)
     {
+      occupancyNumbers << std::fixed << std::setprecision(5) << std::setw(5) << lay
+                                                             << std::setw(15) << roc
+                                                             << std::setw(15) << prof->GetXaxis()->GetBinCenter(roc)
+                                                             << std::setw(15) << prof->GetBinContent(roc);
+
+
+      //plain occupancy
+      hname = "plotter/occRoc/occ_layer"+std::to_string(lay)+"_roc"+std::to_string(roc);
+      TH1D* hOcc_roc = (TH1D*)inFile->Get(hname.c_str());
+      occupancyNumbers << std::fixed << std::setprecision(5) << std::setw(15) << hOcc_roc->GetMean() << "\n";
+
+
+      //compute prob
       graph->SetPoint(roc-1, prof->GetXaxis()->GetBinCenter(roc), prof->GetBinContent(roc));
 
       //compute quantiles
@@ -87,6 +107,7 @@ void plotProbAboveNoise(int noise, int pu)
   leg->Draw("L,same");
 
   c1->Print(Form("%s/noiseProb.pdf", folderName.c_str()));
+  c1->Print(Form("%s/noiseProb.png", folderName.c_str()));
 
   for(auto lay : hs_map)
   {
@@ -131,6 +152,7 @@ void plotProbAboveNoise(int noise, int pu)
     c->Modified();
 
     c->Print(Form("%s/cumulative_%d.pdf", folderName.c_str(), lay.first));
+    c->Print(Form("%s/cumulative_%d.png", folderName.c_str(), lay.first));
 
   }
 
